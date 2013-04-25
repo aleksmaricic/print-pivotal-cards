@@ -3,7 +3,7 @@ print-pivotal-cards
 
 Utility to print cards from Pivotal tracker. 
 
-Tested with Pyhon 2.7.x
+Tested with Python 2.7.x
 
 
 1. You will need to install the python requests module
