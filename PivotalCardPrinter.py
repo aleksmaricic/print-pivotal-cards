@@ -1,6 +1,7 @@
 import requests
 import sys
 import argparse
+import urllib
 from xml.dom import minidom
 
 from StoryRenderer import StoryRenderer
@@ -31,15 +32,55 @@ class Project:
     self.pid = pid
     self.stories = {}
 
-  def reinitialiseAllStories(self):
+  def reinitialiseAllStories(self, modified_since=None, other_params={}):
     self.stories = {}
-    r = self.helper.get("projects/%s/stories" % (self.pid))
+    params_dict = other_params.copy()
+    
+    if modified_since<>None:
+      params_dict.update({'filter': "modified_since:%s includedone:true" % modified_since})
+      # The Pivotal Tracker is somewhat literal - being created does not count
+      # as being 'modified'. 
+      # TODO params_dict.update({'filter': "created_since:%s" % modified_since})
+      
+    params_url = urllib.urlencode(params_dict)
+    
+    if len(params_url) > 0:
+      params_url = "?" + params_url
+    
+    r = self.helper.get("projects/%s/stories%s" % (self.pid, params_url))
     r_xml = minidom.parseString(r.text)
     stories_xml = r_xml.getElementsByTagName("story")
     for s in stories_xml:
       story_id = int(self.helper.getXMLElementData(s, "id"))
       self.stories.update({story_id: Story(self, story_id)})
+    
+    """
+    
+    # The Pivotal Tracker is somewhat literal - being created does not count
+    # as being 'modified'. I've chosen to be more open minded.
+    # TODO: In time this could do with a bit of a refactor
+    params_dict = other_params.copy()
+    
+    if modified_since<>None:
+      params_dict.update({'filter': "created_since:%s includedone:true" % modified_since})
+      print params_dict
+      params_url = urllib.urlencode(params_dict)
+      print params_url
+      if len(params_url) > 0:
+        params_url = "?" + params_url
       
+      r = self.helper.get("projects/%s/stories%s" % (self.pid, params_url))
+      r_xml = minidom.parseString(r.text)
+      print r_xml.toprettyxml(' ','')
+      stories_xml = r_xml.getElementsByTagName("story")
+      print "%s stories found - Created since" % len(stories_xml)
+      for s in stories_xml:
+        story_id = int(self.helper.getXMLElementData(s, "id"))
+        if story_id not in self.stories.keys():
+          self.stories.update({story_id: Story(self, story_id)})
+      
+    """
+    
   def reloadDetailsOfAllStories(self):
     for story in self.stories.values():
       story.reloadStoryDetails()
@@ -55,7 +96,14 @@ class Project:
       stories_xml = r_xml.getElementsByTagName("story")
       for s in stories_xml:
         story_id = int(self.helper.getXMLElementData(s, "id"))
-        self.stories.setdefault(story_id, Story(self, story_id)).setIteration(iteration)
+        if story_id not in self.stories.keys(): 
+          # Sometimes self.stories does not have all the stories.
+          # For example because we did a filtered search or because there
+          # was an update in Pivotal Tracker between updating the stories
+          # list and setting this parameter
+          continue
+        else:
+          self.stories[story_id].setIteration(iteration)
       
       
 class Story:
@@ -122,9 +170,25 @@ class PivotalAPIHelper:
     
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
-  parser.add_argument("token", help="Your Pivotal Tracker API Token from 'www.pivotaltracker.com/profile'")
-  parser.add_argument("pid", help="Your Project ID (e.g. www.pivotaltracker.com/s/projects/<pid>)", type=int)
-  parser.add_argument("-o", "--output", help="The HTML file you want to output to", default=None)
+  parser.add_argument(
+    "token", 
+    help="Your Pivotal Tracker API Token from 'www.pivotaltracker.com/profile'"
+  )
+  parser.add_argument(
+    "pid", 
+    help="Your Project ID (e.g. www.pivotaltracker.com/s/projects/<pid>)", 
+    type=int
+  )
+  parser.add_argument(
+    "-o", "--output", 
+    help="The HTML file you want to output to", 
+    default=None
+  )
+  parser.add_argument(
+    "-s", "--since", 
+    help="Filters to only cards updated since <date>.  Format date as 'Nov 16 2009' or '11/16/2009' (NB American style)", 
+    default=None
+  )
   args = parser.parse_args() 
   api_token = args.token
   
@@ -132,9 +196,10 @@ if __name__ == "__main__":
   tracker = Tracker(helper)
   tracker.reloadDetailsOfProjects()
   pid = args.pid
-  print('Getting all stories for project %s' % pid)
+  print('Getting stories for project %s' % pid)
   project = Project(helper, pid)
-  project.reinitialiseAllStories()
+  project.reinitialiseAllStories(modified_since=args.since)
   project.reloadDetailsOfAllStories()
   story_renderer = StoryRenderer()
+  print('Sending %s stories to the renderer'%len(project.stories.values()))
   story_renderer.render(project.stories.values(), file_name=args.output) # renderer needs a list of stories
