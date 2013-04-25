@@ -4,7 +4,6 @@ import itertools
 
 import PivotalCardTemplate as template
 
-
 class StoryRenderer():
   def __init__(self):
     pass

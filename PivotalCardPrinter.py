@@ -1,10 +1,9 @@
 import requests
 import sys
+import argparse
 from xml.dom import minidom
 
-from pivotalTrackerCredentials import api_token #loads a Pivotal Tracker API Key
 from StoryRenderer import StoryRenderer
-
 
 class Tracker:
   def __init__(self, helper):
@@ -122,15 +121,20 @@ class PivotalAPIHelper:
       return results[0].firstChild.data
     
 if __name__ == "__main__":
-  if len(sys.argv) < 2:
-    sys.exit('Usage: %s <project-id>' % sys.argv[0])
+  parser = argparse.ArgumentParser()
+  parser.add_argument("token", help="Your Pivotal Tracker API Token from 'www.pivotaltracker.com/profile'")
+  parser.add_argument("pid", help="Your Project ID (e.g. www.pivotaltracker.com/s/projects/<pid>)", type=int)
+  parser.add_argument("-o", "--output", help="The HTML file you want to output to", default=None)
+  args = parser.parse_args() 
+  api_token = args.token
+  
   helper = PivotalAPIHelper(api_token)
   tracker = Tracker(helper)
   tracker.reloadDetailsOfProjects()
-  pid = sys.argv[1]
-  print('Getting all stories for project ' + pid)
+  pid = args.pid
+  print('Getting all stories for project %s' % pid)
   project = Project(helper, pid)
   project.reinitialiseAllStories()
   project.reloadDetailsOfAllStories()
   story_renderer = StoryRenderer()
-  story_renderer.render(project.stories.values()) # renderer needs a list of stories
+  story_renderer.render(project.stories.values(), file_name=args.output) # renderer needs a list of stories
