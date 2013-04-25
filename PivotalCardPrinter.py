@@ -34,13 +34,10 @@ class Project:
 
   def reinitialiseAllStories(self, modified_since=None, other_params={}):
     self.stories = {}
-    params_dict = other_params.copy()
+    params_dict = other_params
     
     if modified_since<>None:
       params_dict.update({'filter': "modified_since:%s includedone:true" % modified_since})
-      # The Pivotal Tracker is somewhat literal - being created does not count
-      # as being 'modified'. 
-      # TODO params_dict.update({'filter': "created_since:%s" % modified_since})
       
     params_url = urllib.urlencode(params_dict)
     
@@ -53,34 +50,7 @@ class Project:
     for s in stories_xml:
       story_id = int(self.helper.getXMLElementData(s, "id"))
       self.stories.update({story_id: Story(self, story_id)})
-    
-    """
-    
-    # The Pivotal Tracker is somewhat literal - being created does not count
-    # as being 'modified'. I've chosen to be more open minded.
-    # TODO: In time this could do with a bit of a refactor
-    params_dict = other_params.copy()
-    
-    if modified_since<>None:
-      params_dict.update({'filter': "created_since:%s includedone:true" % modified_since})
-      print params_dict
-      params_url = urllib.urlencode(params_dict)
-      print params_url
-      if len(params_url) > 0:
-        params_url = "?" + params_url
-      
-      r = self.helper.get("projects/%s/stories%s" % (self.pid, params_url))
-      r_xml = minidom.parseString(r.text)
-      print r_xml.toprettyxml(' ','')
-      stories_xml = r_xml.getElementsByTagName("story")
-      print "%s stories found - Created since" % len(stories_xml)
-      for s in stories_xml:
-        story_id = int(self.helper.getXMLElementData(s, "id"))
-        if story_id not in self.stories.keys():
-          self.stories.update({story_id: Story(self, story_id)})
-      
-    """
-    
+        
   def reloadDetailsOfAllStories(self):
     for story in self.stories.values():
       story.reloadStoryDetails()
@@ -186,7 +156,7 @@ if __name__ == "__main__":
   )
   parser.add_argument(
     "-s", "--since", 
-    help="Filters to only cards updated since <date>.  Format date as 'Nov 16 2009' or '11/16/2009' (NB American style)", 
+    help="Filters to only cards created or updated since <date>.  Format date as 'Nov 16 2009' or '11/16/2009' (NB American style)", 
     default=None
   )
   args = parser.parse_args() 
