@@ -13,16 +13,11 @@ http://docs.python-requests.org/en/latest/
 2. Then you will need to get your own API token - this should be at the bottom of your Pivotal user profile page:
 https://www.pivotaltracker.com/profile
 
-Copy and paste that token into a file called 'pivotalTrackerCredentials.py' in the same directory as the main script
-in the following format:
-
-api_token = "add your token here"
-
-3. Run python PivotalCardPrinter.py [your project ID]
+3. Run python PivotalCardPrinter.py [your api token] [your project ID] [optionally: an html filename to output to]
 
 This will create a HTML file with all stories from that project. 
 
-The file name will be default_[timestamp].html
+The file name will default to default_[timestamp].html
 It will expect to find pivotal-cards.css in the same directory
 
 Change the paper orientation to landscape when printing this.
@@ -30,6 +25,7 @@ Change the paper orientation to landscape when printing this.
 
 Coming up:
 - filtering (probably via argparse)
+- more data on cards
 - prettier cards
 - making this simpler, faster, more robust and more useful (whoever gets to it first) 
 
