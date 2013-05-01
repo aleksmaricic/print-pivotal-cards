@@ -23,9 +23,6 @@ class StoryRenderer():
     if file_name == None:
       file_name = "default_%s.html" % datetime.strftime(datetime.now(),"%Y%m%d-%H%M%S")
     
-    if len(stories) == 1:
-      stories = [stories]
-    
     cardno = 0
     
     front_stories = []
